@@ -358,7 +358,7 @@ Every service implements identical error responses:
 ---
 
 ## 10. Links & Artifacts
-* **GitHub Repository**: Link to repo
+* **GitHub Repository**: [https://github.com/kush6542/Group26_Scalable_Services](https://github.com/kush6542/Group26_Scalable_Services)
 * **Google Drive (Demo Video & Report PDF)**: [Drive Folder Link]
 
 ---

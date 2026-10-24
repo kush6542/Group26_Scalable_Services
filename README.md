@@ -1,4 +1,4 @@
-# FoodFlow — Scalable Microservices Architecture (Group 26)
+# FoodFlow: Scalable Microservices Architecture (Group 26)
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115%2B-009688.svg)](https://fastapi.tiangolo.com/)
@@ -104,7 +104,7 @@ Interactive OpenAPI Swagger documentation is available on each service at `http:
 
 ### Step 1: Clone and Set Up Virtual Environment
 ```bash
-git clone <REPO_URL>
+git clone https://github.com/kush6542/Group26_Scalable_Services.git
 cd Group26_Scalable_Services
 
 # Create and activate virtual environment
