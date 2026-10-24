@@ -19,6 +19,28 @@ from .middleware import CorrelationIdMiddleware, logger
 
 Base.metadata.create_all(bind=engine)
 
+def seed_default_rider():
+    """Auto-seeds default available rider so fresh clones have immediate demo data."""
+    from .database import SessionLocal
+    db = SessionLocal()
+    try:
+        if db.query(DeliveryRider).filter(DeliveryRider.id == "rider-dave-01").first() is None:
+            rider = DeliveryRider(
+                id="rider-dave-01",
+                name="Dave Courier",
+                phone="+19998887777",
+                vehicle_type="MOTORBIKE",
+                status="AVAILABLE"
+            )
+            db.add(rider)
+            db.commit()
+    except Exception as e:
+        logger.warning(f"Default rider seed skipped: {e}")
+    finally:
+        db.close()
+
+seed_default_rider()
+
 app = FastAPI(
     title="FoodFlow - Delivery Service",
     version="1.0.0",

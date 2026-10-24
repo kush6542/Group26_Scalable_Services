@@ -21,6 +21,39 @@ from .middleware import CorrelationIdMiddleware, logger
 # Initialize database tables
 Base.metadata.create_all(bind=engine)
 
+def seed_default_menu():
+    """Auto-seeds default menu item if not present so fresh clones have immediate demo data."""
+    from .database import SessionLocal
+    db = SessionLocal()
+    try:
+        if db.query(Restaurant).filter(Restaurant.id == "rest-taj-biryani").first() is None:
+            rest = Restaurant(
+                id="rest-taj-biryani",
+                name="Taj Biryani Kitchen",
+                address="42 Spice Road, Cyber City",
+                is_active=True
+            )
+            db.add(rest)
+            db.commit()
+
+            dish = MenuItem(
+                id="dish-hyderabadi-biryani",
+                restaurant_id="rest-taj-biryani",
+                name="Hyderabadi Dum Biryani",
+                description="Authentic slow-cooked saffron basmati rice with tender spiced meat",
+                price=14.50,
+                available_quantity=20,
+                version=1
+            )
+            db.add(dish)
+            db.commit()
+    except Exception as e:
+        logger.warning(f"Default menu seed skipped: {e}")
+    finally:
+        db.close()
+
+seed_default_menu()
+
 app = FastAPI(
     title="FoodFlow - Restaurant & Menu Service",
     version="1.0.0",
