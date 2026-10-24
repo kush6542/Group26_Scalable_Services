@@ -1,0 +1,44 @@
+======================================================================
+   CHALLENGE 1: CONCURRENCY CONTROL UNDER SIMULTANEOUS ACCESS
+======================================================================
+Goal: Fire 20 parallel threads against a contended resource with capacity 5.
+Requirement: Exactly 5 succeed (HTTP 201), 15 fail (HTTP 409), final stock is 0.
+----------------------------------------------------------------------
+[Setup] Created Dish 'Flash Deal Royal Biryani' (Item ID: c696a130-4579-4474-9c65-0c79fe9c01c2)
+[Setup] Initial Available Quantity: 5
+
+Launching 20 concurrent threads simultaneously...
+
+--- Execution Results ---
+Request #01: SUCCESS (201) in 47.9ms -> RESERVED
+Request #02: SUCCESS (201) in 49.3ms -> RESERVED
+Request #03: SUCCESS (201) in 64.8ms -> RESERVED
+Request #04: SUCCESS (201) in 53.9ms -> RESERVED
+Request #05: SUCCESS (201) in 65.5ms -> RESERVED
+Request #06: REJECTED (409) in 66.1ms -> Stock insufficient: requested 1, only 0 remaining.
+Request #07: REJECTED (409) in 67.4ms -> Stock insufficient: requested 1, only 0 remaining.
+Request #08: REJECTED (409) in 77.6ms -> Stock insufficient: requested 1, only 0 remaining.
+Request #09: REJECTED (409) in 75.3ms -> Stock insufficient: requested 1, only 0 remaining.
+Request #10: REJECTED (409) in 78.4ms -> Stock insufficient: requested 1, only 0 remaining.
+Request #11: REJECTED (409) in 75.1ms -> Stock insufficient: requested 1, only 0 remaining.
+Request #12: REJECTED (409) in 78.1ms -> Stock insufficient: requested 1, only 0 remaining.
+Request #13: REJECTED (409) in 74.8ms -> Stock insufficient: requested 1, only 0 remaining.
+Request #14: REJECTED (409) in 77.4ms -> Stock insufficient: requested 1, only 0 remaining.
+Request #15: REJECTED (409) in 76.1ms -> Stock insufficient: requested 1, only 0 remaining.
+Request #16: REJECTED (409) in 76.5ms -> Stock insufficient: requested 1, only 0 remaining.
+Request #17: REJECTED (409) in 81.7ms -> Stock insufficient: requested 1, only 0 remaining.
+Request #18: REJECTED (409) in 76.8ms -> Stock insufficient: requested 1, only 0 remaining.
+Request #19: REJECTED (409) in 76.8ms -> Stock insufficient: requested 1, only 0 remaining.
+Request #20: REJECTED (409) in 72.7ms -> Stock insufficient: requested 1, only 0 remaining.
+
+--- Summary ---
+Total Requests Dispatched: 20
+Successful Allocations:   5 (Expected: 5)
+Rejected Out of Stock:    15 (Expected: 15)
+Unexpected Failures:      0 (Expected: 0)
+Total Burst Duration:     84.3ms
+
+[Verification] Final Database Available Quantity: 0
+[Verification] Final Database Item Version: 6
+
+[VERIFIED] Challenge 1 Concurrency Control: PASSED with ZERO OVER-ALLOCATION!

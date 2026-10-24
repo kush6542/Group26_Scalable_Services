@@ -1,0 +1,27 @@
+======================================================================
+   CHALLENGE 2: IDEMPOTENCY ENFORCEMENT & CONCURRENT REPLAY
+======================================================================
+
+Phase 1: Submitting initial payment request...
+  [✓] Initial Payment Succeeded: Status 201, Txn ID=50ad239a-0f04-43c5-9d6b-c9308549f7b1, Amount=$49.99
+
+Phase 2: Submitting identical duplicate request (Network Retry simulation)...
+  [✓] Cached Response Replayed: Status 201, Header X-Idempotent-Replay=true
+  [✓] Returned Txn ID matches original: 50ad239a-0f04-43c5-9d6b-c9308549f7b1 == 50ad239a-0f04-43c5-9d6b-c9308549f7b1
+
+Phase 3: Submitting tampered payload with the same Idempotency-Key...
+  [✓] Tampered Payload Rejected: Status 409 Conflict
+      Message: 'Idempotency key 'key-4e6a6241-763d-4f6c-9ccf-4943ad64efa8' already used with a different request payload.'
+
+Phase 4: Firing burst of 10 SIMULTANEOUS identical requests with a new key...
+  [✓] Burst Completed (10 parallel requests).
+      - Original Execution: 1 call
+      - Replay Hits: 9 calls
+
+Phase 5: Verifying Database Integrity...
+  [✓] Verified order ord-idemp-fa8627e8 has EXACTLY 1 payment record in database (no double charge).
+  [✓] Verified burst order ord-burst-207af00d has EXACTLY 1 payment record despite 10 simultaneous hits.
+
+======================================================================
+  [VERIFIED] Challenge 2 Idempotency: PASSED ALL CHECKS!
+======================================================================

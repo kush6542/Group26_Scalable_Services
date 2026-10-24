@@ -1,0 +1,40 @@
+===========================================================================
+   CHALLENGE 3C: ORCHESTRATED SAGA WITH COMPENSATING ROLLBACKS
+===========================================================================
+
+--- SCENARIO 1: Happy Path Saga Execution ---
+[✓] Happy Path Order Completed: ID=599f9517-b0db-49f9-882d-76cadbf5eaa7, Status=CONFIRMED
+    State transition: NONE -> PENDING (Order checkout initiated by customer)
+    State transition: PENDING -> STOCK_RESERVED (Reservation ID: 12ebe5a3-fc17-4c6b-b2ca-46943ccfcfa1)
+    State transition: STOCK_RESERVED -> PAID (Payment ID: f8fe9cf2-ae75-4a88-a833-6263f905bba1)
+    State transition: PAID -> DELIVERY_ASSIGNED (Delivery Task ID: 4e375771-7f69-4542-8e9f-20f9474ea983)
+    State transition: DELIVERY_ASSIGNED -> CONFIRMED (Order checkout saga successfully finished)
+[✓] Stock count updated: 10 -> 8 (Decremented by 2)
+
+--- SCENARIO 2: Payment Failure at Step 2 (Compensates Step 1 Stock) ---
+Current Stock before failed order: 8
+[✓] Order correctly rejected with 402: Status=FAILED_PAYMENT_REJECTED
+    Failure Reason: Card declined: Insufficient funds or card restriction
+State Machine Compensating Progression:
+    NONE -> PENDING (Order checkout initiated by customer)
+    PENDING -> STOCK_RESERVED (Reservation ID: 3b5a6c23-6173-4973-b8ce-3bda87d95141)
+    STOCK_RESERVED -> COMPENSATING_ROLLBACK (Payment failed; releasing reserved stock)
+    COMPENSATING_ROLLBACK -> FAILED_PAYMENT_REJECTED (Card declined: Insufficient funds or card restriction)
+[✓] Stock count after compensating rollback: 8
+    [VERIFIED] Compensating transaction restored all 3 reserved items!
+
+--- SCENARIO 3: Delivery Failure at Step 3 (Compensates Payment & Stock) ---
+[✓] Order rejected at delivery step: Status=FAILED_NO_RIDER_AVAILABLE
+    Failure Reason: No delivery riders are currently available in the service zone.
+State Machine Double-Compensation Progression:
+    NONE -> PENDING (Order checkout initiated by customer)
+    PENDING -> STOCK_RESERVED (Reservation ID: 01e4e2d9-139f-42c2-8efa-4790e03cc83b)
+    STOCK_RESERVED -> PAID (Payment ID: 8fc7d8c4-6d29-403f-b94b-06e69ff5ff9e)
+    PAID -> COMPENSATING_ROLLBACK (No rider; refunding payment and releasing stock)
+    COMPENSATING_ROLLBACK -> FAILED_NO_RIDER_AVAILABLE (No delivery riders are currently available in the service zone.)
+    [VERIFIED] Stock restored: 8 == 8
+    [VERIFIED] Payment 8fc7d8c4-6d29-403f-b94b-06e69ff5ff9e was automatically refunded (status=REFUNDED)
+
+===========================================================================
+  [VERIFIED] Challenge 3C Saga with Compensation: ALL SCENARIOS PASSED!
+===========================================================================

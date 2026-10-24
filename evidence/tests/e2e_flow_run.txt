@@ -1,0 +1,42 @@
+============================================================
+   FoodFlow End-to-End Main Transaction Verification
+============================================================
+
+1. Verifying Health of all 5 services...
+   [✓] order_service is UP (UP)
+   [✓] restaurant_service is UP (UP)
+   [✓] payment_service is UP (UP)
+   [✓] delivery_service is UP (UP)
+   [✓] notification_service is UP (UP)
+
+2. Seeding Restaurant & Menu Catalog...
+   [✓] Created Restaurant: 'Taj Biryani Kitchen' (ID: 68dc2e41-186a-44b6-b416-6fd255ef06a7)
+   [✓] Added Menu Item: 'Hyderabadi Dum Biryani' (Qty: 20, Price: $14.50)
+
+3. Registering Delivery Rider...
+   [✓] Registered Rider: 'Dave Courier' (Status: AVAILABLE)
+
+4. Customer Initiates Order Checkout (Multi-Service Saga)...
+   [✓] Order Placed & Confirmed: ID=03c116d5-ad88-4e59-beee-e0c8fe224bc2
+       - Status: CONFIRMED
+       - Total: $29.0
+       - Stock Reservation ID: 284719f4-dc64-4acd-a21d-c3c05f555ba2
+       - Payment ID: a0627f09-601d-4e9c-85c7-8bdf4312cf67
+       - Delivery Task ID: 3cfa04ae-2b89-4192-9be7-12c1a78c9209
+
+5. Verifying Database Consistency Across Microservices...
+   [✓] Restaurant Stock updated: 20 -> 18 (Decremented by 2)
+   [✓] Payment Service confirmed transaction status: SUCCESS
+   [✓] Delivery Task confirmed status: ASSIGNED
+   [✓] Notification Service recorded dispatch: 'FoodFlow Order 03c116d5-ad88-4e59-beee-e0c8fe224bc2 confirmed! Delivery task 3cfa04ae-2b89-4192-9be7-12c1a78c9209 is dispatched.'
+
+6. Order State Machine Transition History:
+   - NONE -> PENDING (Order checkout initiated by customer)
+   - PENDING -> STOCK_RESERVED (Reservation ID: 284719f4-dc64-4acd-a21d-c3c05f555ba2)
+   - STOCK_RESERVED -> PAID (Payment ID: a0627f09-601d-4e9c-85c7-8bdf4312cf67)
+   - PAID -> DELIVERY_ASSIGNED (Delivery Task ID: 3cfa04ae-2b89-4192-9be7-12c1a78c9209)
+   - DELIVERY_ASSIGNED -> CONFIRMED (Order checkout saga successfully finished)
+
+============================================================
+  [SUCCESS] END-TO-END FLOW COMPLETED ALL CHECKS PERFECTLY
+============================================================
