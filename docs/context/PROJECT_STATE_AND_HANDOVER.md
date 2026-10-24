@@ -4,7 +4,7 @@
 > **Team**: Group 26  
 > **Repository**: [https://github.com/kush6542/Group26_Scalable_Services](https://github.com/kush6542/Group26_Scalable_Services)  
 > **Date of Last Update**: October 2026  
-> **Current Version**: v1.0.0 (Assignment 1 Complete)
+> **Current Version**: v1.1.0 (Assignment 1 Complete with Demo Seed Support)
 
 ---
 
@@ -60,7 +60,66 @@ The architecture strictly follows the **Database-per-Service** microservices pat
 
 ---
 
-## 3. Git & Remote Configuration
+## 3. Auto-Seeding & Demo Fixed IDs
+
+Whenever any user boots the services, the system automatically checks and pre-populates clean, human-readable demo records. You do not need to deal with long random UUIDs.
+
+* **Restaurant ID**: `rest-taj-biryani` (*"Taj Biryani Kitchen"*)
+* **Menu Item ID**: `dish-hyderabadi-biryani` (*"Hyderabadi Dum Biryani"*, Price: $14.50, Initial Stock: 20)
+* **Delivery Rider ID**: `rider-dave-01` (*"Dave Courier"*, Status: `AVAILABLE`)
+
+### Reset Seed Script:
+If you want to reset stock back to 20 at any point:
+```bash
+python3 scripts/seed_demo_data.py
+```
+
+---
+
+## 4. Swagger UI Visual Demo Walkthrough (For Recording Video)
+
+Open two browser tabs side-by-side with your terminal:
+* **Restaurant Swagger UI**: [http://localhost:8002/docs](http://localhost:8002/docs)
+* **Order Swagger UI**: [http://localhost:8001/docs](http://localhost:8001/docs)
+
+### A. The Happy Path Order
+1. In `http://localhost:8002/docs`, expand `GET /api/v1/restaurants/rest-taj-biryani/menu`, click **Try it out** -> **Execute**. Show stock is `20`.
+2. In `http://localhost:8001/docs`, expand `POST /api/v1/orders/checkout`, click **Try it out**, paste the JSON below and click **Execute**:
+```json
+{
+  "customer_id": "cust-demo",
+  "restaurant_id": "rest-taj-biryani",
+  "item_id": "dish-hyderabadi-biryani",
+  "quantity": 2,
+  "unit_price": 14.5,
+  "delivery_address": "Flat 202, Marina Bay",
+  "pickup_address": "42 Spice Road, Cyber City",
+  "card_number": "4111111111111111"
+}
+```
+Response returns `201 Created` with `"status": "CONFIRMED"`.
+3. Refresh the Restaurant Swagger tab: stock has decremented from **20 -> 18**.
+
+### B. The Failure Case (Card Declined & Stock Released)
+In `POST /api/v1/orders/checkout`, change card_number to end in `9999`:
+```json
+{
+  "customer_id": "cust-demo",
+  "restaurant_id": "rest-taj-biryani",
+  "item_id": "dish-hyderabadi-biryani",
+  "quantity": 2,
+  "unit_price": 14.5,
+  "delivery_address": "Flat 202, Marina Bay",
+  "pickup_address": "42 Spice Road, Cyber City",
+  "card_number": "4111111111119999"
+}
+```
+Response returns `402 Payment Required` with `"status": "FAILED_PAYMENT_REJECTED"`.
+Point out to the evaluator that the Saga Orchestrator caught the decline and released the stock, so stock remains at 18!
+
+---
+
+## 5. Git & Remote Configuration
 
 * **GitHub Repository**: `https://github.com/kush6542/Group26_Scalable_Services`
 * **Personal SSH Remote**: Configured using host alias `github.com-personal`:
@@ -71,7 +130,7 @@ The architecture strictly follows the **Database-per-Service** microservices pat
 
 ---
 
-## 4. Pending Deliverables for Final Submission (Assignment 1)
+## 6. Action Items to Pick Up in Next Session
 
 1. **Team Member Details & Reflections**:
    * Open `docs/FoodFlow_Design_Report.md` (Appendix B).
@@ -79,17 +138,17 @@ The architecture strictly follows the **Database-per-Service** microservices pat
 2. **Commit Distribution**:
    * Have teammates clone the repo and commit small tweaks from their machines so the Git commit history reflects multiple authors.
 3. **Record Demo Video (8 to 10 Minutes)**:
-   * Follow the teleprompter outline in `docs/FoodFlow_Design_Report.md` (Appendix A).
-   * Run `scripts/run_all_services.py` in Terminal 1.
-   * Run `scripts/test_e2e_flow.py`, `scripts/test_challenge1_concurrency.py`, `scripts/test_challenge2_idempotency.py`, and `scripts/test_challenge3_saga.py` live in Terminal 2.
-   * Upload video to Google Drive (public viewable link).
+   * Follow the outline in Section 4 above and `docs/FoodFlow_Design_Report.md` (Appendix A).
+   * Upload video to Google Drive (set permission to "Anyone with the link can view").
 4. **Convert Report to PDF**:
    * Add Google Drive link to Section 10 of `docs/FoodFlow_Design_Report.md`.
    * Export the Markdown file to `FoodFlow_Design_Report.pdf` (max 15 pages).
+5. **Submit Assignment 1**:
+   * Submit GitHub repository URL, Design Report PDF, and Google Drive demo video link on the portal.
 
 ---
 
-## 5. Quick Command Reference
+## 7. Quick Command Reference
 
 ```bash
 # Activate virtual environment
@@ -97,6 +156,9 @@ source .venv/bin/activate
 
 # Run full test suite
 pytest services/
+
+# Reset / Seed demo data with memorable IDs
+python3 scripts/seed_demo_data.py
 
 # Start all 5 microservices (Terminal 1)
 python3 scripts/run_all_services.py

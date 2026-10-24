@@ -176,6 +176,7 @@ Group26_Scalable_Services/
 │   └── notification_service/           # Port 8005
 ├── scripts/
 │   ├── run_all_services.py             # Single command service runner with health checks
+│   ├── seed_demo_data.py               # Standalone demo data seeder (fixed memorable IDs)
 │   ├── export_openapi.py               # Exports OpenAPI specifications
 │   ├── test_e2e_flow.py                # End-to-End lifecycle test
 │   ├── test_challenge1_concurrency.py  # Concurrency verification script
