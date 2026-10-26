@@ -96,55 +96,103 @@ Interactive OpenAPI Swagger documentation is available on each service at `http:
 
 ---
 
+## Dockerized Microservices Setup
+
+This project now supports running the system as a Docker Compose stack with a shared PostgreSQL instance and one database per service.
+
+### Architecture
+
+- `postgres` container runs PostgreSQL 15
+- each service gets its own database:
+  - `order_service_db`
+  - `restaurant_service_db`
+  - `payment_service_db`
+  - `delivery_service_db`
+  - `notification_service_db`
+- inter-service communication still happens over HTTP on the Docker network
+- each service exposes its own FastAPI endpoint on a fixed host port
+
+### Database Design
+
+This keeps the project aligned with the microservice best practice of database-per-service while still using a single PostgreSQL server for simplicity and persistence.
+
+- no shared database tables across services
+- each service owns its schema and data
+- each service connects using a dedicated database user and URL
+
+Example service DB URLs:
+```bash
+postgresql://order_service_user:order_service_pass@postgres:5432/order_service_db
+postgresql://restaurant_service_user:restaurant_service_pass@postgres:5432/restaurant_service_db
+postgresql://payment_service_user:payment_service_pass@postgres:5432/payment_service_db
+postgresql://delivery_service_user:delivery_service_pass@postgres:5432/delivery_service_db
+postgresql://notification_service_user:notification_service_pass@postgres:5432/notification_service_db
+```
+
+### Docker Startup
+
+From the project root:
+```bash
+docker compose up --build -d
+```
+
+This starts:
+- PostgreSQL
+- Restaurant Service on `http://localhost:8002`
+- Payment Service on `http://localhost:8003`
+- Delivery Service on `http://localhost:8004`
+- Notification Service on `http://localhost:8005`
+- Order Service on `http://localhost:8001`
+
+### Docker Health Checks
+
+The stack includes:
+- PostgreSQL readiness checks
+- per-service `healthcheck` blocks
+- startup ordering so the services wait for Postgres and for dependent services to become healthy
+
+You can verify all services with:
+```bash
+curl http://localhost:8001/health
+curl http://localhost:8002/health
+curl http://localhost:8003/health
+curl http://localhost:8004/health
+curl http://localhost:8005/health
+```
+
+### Docker Cleanup
+
+To stop and remove the stack:
+```bash
+docker compose down -v
+```
+
+This stops all containers and removes the Docker volumes, including PostgreSQL data.
+
+---
+
 ## 5. Quickstart & How to Run
 
-### Prerequisites
-* Python 3.10+
-* Git
+### Option A: Local Python Run
 
-### Step 1: Clone and Set Up Virtual Environment
 ```bash
-git clone https://github.com/kush6542/Group26_Scalable_Services.git
-cd Group26_Scalable_Services
-
-# Create and activate virtual environment
 python3 -m venv .venv
 source .venv/bin/activate
-
-# Install dependencies
-pip install fastapi uvicorn sqlalchemy httpx pydantic pytest
-```
-
-### Step 2: Run All 5 Services
-We provide an automated orchestrator runner that launches all 5 services concurrently and validates their `/health` checks:
-```bash
+pip install -r requirements.txt
 python3 scripts/run_all_services.py
 ```
-*(Leave this running in terminal window 1).*
 
-### Step 3: Run Unit Tests
-In a second terminal window (with `.venv` activated):
+### Option B: Docker Compose Run
+
 ```bash
-pytest services/
-```
-Output:
-```text
-======================== 20 passed, 1 warning in 0.38s =========================
+docker compose up --build -d
 ```
 
-### Step 4: Run Challenge & End-to-End Verification Scripts
-With all services running:
+Then run the verification scripts:
 ```bash
-# 1. Run Main End-to-End Business Flow:
 python3 scripts/test_e2e_flow.py
-
-# 2. Run Challenge 1 (Concurrency Control - 20 parallel requests against 5 items):
 python3 scripts/test_challenge1_concurrency.py
-
-# 3. Run Challenge 2 (Idempotency Replay, Tampering, and Parallel Bursts):
 python3 scripts/test_challenge2_idempotency.py
-
-# 4. Run Challenge 3C (Saga Happy Path & Multi-Step Compensating Rollbacks):
 python3 scripts/test_challenge3_saga.py
 ```
 
@@ -155,38 +203,25 @@ python3 scripts/test_challenge3_saga.py
 ```text
 Group26_Scalable_Services/
 ├── README.md                           # This guide
+├── docker-compose.yml                  # Multi-container orchestration
+├── docker/
+│   └── postgres/
+│       └── init.sql                   # Creates PostgreSQL DBs and users
 ├── pytest.ini                          # Pytest configuration
 ├── docs/                               # Diagrams, OpenAPI JSON specs, design report
-│   ├── openapi/
-│   │   ├── order_service_openapi.json
-│   │   ├── restaurant_service_openapi.json
-│   │   ├── payment_service_openapi.json
-│   │   ├── delivery_service_openapi.json
-│   │   └── notification_service_openapi.json
-│   └── FoodFlow_Design_Report.md
 ├── services/
-│   ├── order_service/                  # Port 8001
-│   │   ├── src/ (main.py, saga_orchestrator.py, models.py, schemas.py, config.py)
-│   │   ├── tests/ (test_business_rules.py)
-│   │   ├── requirements.txt
-│   │   └── .env.example
-│   ├── restaurant_service/             # Port 8002
-│   ├── payment_service/                # Port 8003
-│   ├── delivery_service/               # Port 8004
-│   └── notification_service/           # Port 8005
+│   ├── order_service/
+│   ├── restaurant_service/
+│   ├── payment_service/
+│   ├── delivery_service/
+│   └── notification_service/
 ├── scripts/
-│   ├── run_all_services.py             # Single command service runner with health checks
-│   ├── seed_demo_data.py               # Standalone demo data seeder (fixed memorable IDs)
-│   ├── export_openapi.py               # Exports OpenAPI specifications
-│   ├── test_e2e_flow.py                # End-to-End lifecycle test
-│   ├── test_challenge1_concurrency.py  # Concurrency verification script
-│   ├── test_challenge2_idempotency.py  # Idempotency verification script
-│   └── test_challenge3_saga.py         # Saga compensation verification script
+│   ├── run_all_services.py
+│   ├── test_e2e_flow.py
+│   ├── test_challenge1_concurrency.py
+│   ├── test_challenge2_idempotency.py
+│   └── test_challenge3_saga.py
 └── evidence/
-    ├── challenge-1-concurrency/        # Output logs and explanatory README
-    ├── challenge-2-idempotency/
-    ├── challenge-3-saga/
-    └── tests/
 ```
 
 ---
