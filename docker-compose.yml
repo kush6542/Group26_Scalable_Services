@@ -1,0 +1,169 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: foodflow-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - foodflow_postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - foodflow-net
+
+  restaurant_service:
+    build:
+      context: .
+      dockerfile: services/restaurant_service/Dockerfile
+    container_name: foodflow-restaurant
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8002:8002"
+    environment:
+      SERVICE_NAME: restaurant_service
+      HOST: 0.0.0.0
+      PORT: "8002"
+      DATABASE_URL: postgresql://restaurant_service_user:restaurant_service_pass@postgres:5432/restaurant_service_db
+      LOG_LEVEL: INFO
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - foodflow-net
+
+  payment_service:
+    build:
+      context: .
+      dockerfile: services/payment_service/Dockerfile
+    container_name: foodflow-payment
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8003:8003"
+    environment:
+      SERVICE_NAME: payment_service
+      HOST: 0.0.0.0
+      PORT: "8003"
+      DATABASE_URL: postgresql://payment_service_user:payment_service_pass@postgres:5432/payment_service_db
+      LOG_LEVEL: INFO
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8003/health').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - foodflow-net
+
+  delivery_service:
+    build:
+      context: .
+      dockerfile: services/delivery_service/Dockerfile
+    container_name: foodflow-delivery
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8004:8004"
+    environment:
+      SERVICE_NAME: delivery_service
+      HOST: 0.0.0.0
+      PORT: "8004"
+      DATABASE_URL: postgresql://delivery_service_user:delivery_service_pass@postgres:5432/delivery_service_db
+      LOG_LEVEL: INFO
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8004/health').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - foodflow-net
+
+  notification_service:
+    build:
+      context: .
+      dockerfile: services/notification_service/Dockerfile
+    container_name: foodflow-notification
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8005:8005"
+    environment:
+      SERVICE_NAME: notification_service
+      HOST: 0.0.0.0
+      PORT: "8005"
+      DATABASE_URL: postgresql://notification_service_user:notification_service_pass@postgres:5432/notification_service_db
+      LOG_LEVEL: INFO
+      SIMULATE_FAILURE: "false"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8005/health').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - foodflow-net
+
+  order_service:
+    build:
+      context: .
+      dockerfile: services/order_service/Dockerfile
+    container_name: foodflow-order
+    depends_on:
+      postgres:
+        condition: service_healthy
+      restaurant_service:
+        condition: service_healthy
+      payment_service:
+        condition: service_healthy
+      delivery_service:
+        condition: service_healthy
+      notification_service:
+        condition: service_healthy
+    ports:
+      - "8001:8001"
+    environment:
+      SERVICE_NAME: order_service
+      HOST: 0.0.0.0
+      PORT: "8001"
+      DATABASE_URL: postgresql://order_service_user:order_service_pass@postgres:5432/order_service_db
+      LOG_LEVEL: INFO
+      RESTAURANT_SERVICE_URL: http://restaurant_service:8002
+      PAYMENT_SERVICE_URL: http://payment_service:8003
+      DELIVERY_SERVICE_URL: http://delivery_service:8004
+      NOTIFICATION_SERVICE_URL: http://notification_service:8005
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - foodflow-net
+
+volumes:
+  foodflow_postgres_data:
+
+networks:
+  foodflow-net:
+    driver: bridge
