@@ -2,7 +2,11 @@
 **Course**: Scalable Services (SEZG583) | MTech  
 **Assignment**: Assignment 1 (13 Marks)  
 **Team**: Group 26  
-**Repository**: [Group26_Scalable_Services](file:///Users/kushagra.parashar/IdeaProjects/Group26_Scalable_Services)
+* **Kushagra Parashar** (`2025tm93126@wilp.bits-pilani.ac.in`)
+* **Thamarai Muthu Selvi A** (`2025tm93028@wilp.bits-pilani.ac.in`)
+* **Vijay Kumar Singh** (`2025tm93550@wilp.bits-pilani.ac.in`)
+* **Hemanta** (`2025tm93xxx@wilp.bits-pilani.ac.in`)  
+**Repository**: [https://github.com/kush6542/Group26_Scalable_Services](https://github.com/kush6542/Group26_Scalable_Services)
 
 ---
 
@@ -377,12 +381,36 @@ Every service implements identical error responses:
 
 ## Appendix B: Student Contributions & Reflections
 
-| Student Name | Student ID | Service Owned | Key Contributions |
+### B.1 Contribution Matrix
+
+| Student Name | Student ID / Email | Service Owned | Key Contributions |
 | :--- | :--- | :--- | :--- |
-| Member 1 | [ID 1] | Order Service | Saga Orchestrator, state machine, checkout endpoints, e2e test script |
-| Member 2 | [ID 2] | Restaurant Service | Catalog, menu models, Challenge 1 atomic concurrency control |
-| Member 3 | [ID 3] | Payment Service | Mock gateway, Challenge 2 idempotency engine, payload fingerprinting |
-| Member 4 | [ID 4] | Delivery & Notification | Rider allocation, dispatching tasks, notification logs, health monitoring |
+| **Kushagra Parashar** | `2025tm93126@wilp.bits-pilani.ac.in` | **Order Service** & **Restaurant Service** | Architected the core multi-service checkout Saga Orchestrator, persistent state machine, and Challenge 1 atomic SQL concurrency control (`available_quantity >= :qty`). Built end-to-end integration test harness and unified service runner. |
+| **Thamarai Muthu Selvi A** | `2025tm93028@wilp.bits-pilani.ac.in` | **Payment Service** | Implemented Challenge 2 idempotency engine with cryptographic SHA-256 request payload hashing, database unique constraints for concurrent race protection, and simulated failure injection for Saga rollbacks. |
+| **Vijay Kumar Singh** | `2025tm93550@wilp.bits-pilani.ac.in` | **Delivery Service** | Engineered the rider registry, rider status locking (`AVAILABLE` -> `BUSY`), delivery task allocation lifecycle, and compensating cancellation endpoints for multi-step Saga rollbacks. |
+| **Hemanta** | `2025tm93xxx@wilp.bits-pilani.ac.in` | **Notification Service** | Developed the multi-channel notification dispatching service (SMS, Email, Push), third-party gateway failure simulation, health probe monitoring, and distributed correlation ID tracing middleware. |
+
+### B.2 Individual Reflections
+
+#### 1. Kushagra Parashar (Order Service & Restaurant Service)
+* **What I Built**: I developed the Order Service and the Restaurant Service. In Order Service, I built the centralized Saga Orchestrator that coordinates the distributed business transaction across four independent services and logs explicit state machine transitions (`PENDING`, `STOCK_RESERVED`, `PAID`, `DELIVERY_ASSIGNED`, `CONFIRMED`, `COMPENSATING_ROLLBACK`). In Restaurant Service, I implemented the catalog, menu inventory, and atomic conditional stock updates for Challenge 1.
+* **Hardest Problem Solved**: Eliminating race conditions under simultaneous bursts. When 20 threads hit a single menu item with capacity 5, naive application code ("check-then-update") caused extreme over-allocation. I solved this by pushing the concurrency check into an atomic SQL `UPDATE ... WHERE available_quantity >= :qty` statement, mathematically preventing overselling while avoiding coarse table locks.
+* **What I Would Change**: In future iterations (Assignment 2), I would introduce an asynchronous message broker (such as Kafka or RabbitMQ) to decouple the Saga steps, transitioning from synchronous HTTP orchestration to event-driven choreography for non-blocking scale.
+
+#### 2. Thamarai Muthu Selvi A (Payment Service)
+* **What I Built**: I designed and developed the Payment Service, including charge processing, compensating refund endpoints, and the complete Idempotency Engine (Challenge 2) to prevent double debits during network retries or duplicate clicks.
+* **Hardest Problem Solved**: Handling concurrent duplicate hits arriving at the exact same millisecond. A standard check-then-store lookup fails under simultaneous identical requests due to read-commit latencies. I solved this by adding a database-level unique constraint on `idempotency_records.key` paired with `IN_PROGRESS` state tracking, guaranteeing that exactly one transaction executes while concurrent duplicates await the cached result.
+* **What I Would Change**: I would add time-to-live (TTL) expiration on the idempotency cache records and implement automated token bucket rate-limiting to protect payment gateways from distributed denial-of-service traffic.
+
+#### 3. Vijay Kumar Singh (Delivery Service)
+* **What I Built**: I implemented the Delivery Service responsible for tracking rider states (`AVAILABLE`, `BUSY`, `OFFLINE`), dispatching delivery tasks to eligible couriers, and providing a compensating `POST /tasks/{id}/cancel` endpoint.
+* **Hardest Problem Solved**: Managing the logistics compensation lifecycle during Saga rollbacks. When downstream operations fail, the delivery task must not only be marked `CANCELLED`, but the assigned rider must be atomically restored to `AVAILABLE` status without creating orphaned driver states.
+* **What I Would Change**: I would incorporate geo-spatial proximity indexing (e.g., PostGIS) so that riders are dispatched based on real-time Euclidean or road distance to the pickup restaurant rather than first-available FIFO order.
+
+#### 4. Hemanta (Notification Service)
+* **What I Built**: I developed the Notification Service handling SMS, email, and push alerts with persistent dispatch logging, simulated gateway unreachability (HTTP 503), and distributed tracing middleware.
+* **Hardest Problem Solved**: Establishing end-to-end observability and log correlation. In a distributed multi-service setup, debugging errors without unified identifiers is impossible. I helped implement the `CorrelationIdMiddleware` that extracts or generates `X-Correlation-ID` and propagates it across all service-to-service HTTP headers and log streams.
+* **What I Would Change**: I would implement an outbox pattern with dead-letter queue (DLQ) retry mechanisms so that temporary notification provider failures do not lose pending alerts.
 
 ---
 
