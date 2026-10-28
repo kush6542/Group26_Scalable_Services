@@ -6,7 +6,7 @@
 > * **Kushagra Parashar** (`2025tm93126@wilp.bits-pilani.ac.in`) — Lead: Order Service & Restaurant Service  
 > * **Thamarai Muthu Selvi A** (`2025tm93028@wilp.bits-pilani.ac.in`) — Payment Service  
 > * **Vijay Kumar Singh** (`2025tm93550@wilp.bits-pilani.ac.in`) — Delivery Service  
-> * **Hemanta** (`2025tm93xxx@wilp.bits-pilani.ac.in`) — Notification Service  
+> * **Hemanta Kumar Rana** (`2025tm93157@wilp.bits-pilani.ac.in`) — Notification Service  
 > **Target Video Duration**: 8 to 10 Minutes (Strictly enforced by faculty rubric)
 
 ---
@@ -39,7 +39,7 @@
   > * *I am **Kushagra Parashar** (Student ID: 2025tm93126). I owned the two central services: the **Order Service**, which acts as our distributed Saga Orchestrator, and the **Restaurant Service**, which manages menus and atomic inventory concurrency control.*  
   > * ***Thamarai Muthu Selvi A** (Student ID: 2025tm93028) owned the **Payment Service**, implementing our cryptographic Idempotency Engine and failure injection mocks.*  
   > * ***Vijay Kumar Singh** (Student ID: 2025tm93550) owned the **Delivery Service**, managing driver availability and task dispatching.*  
-  > * ***Hemanta** owned the **Notification Service**, managing multi-channel alerts and distributed request correlation tracing.*  
+  > * ***Hemanta Kumar Rana** (Student ID: 2025tm93157) owned the **Notification Service**, managing multi-channel alerts and distributed request correlation tracing.*  
   >  
   > *Let us now examine the architectural design."*
 

@@ -5,7 +5,7 @@
 * **Kushagra Parashar** (`2025tm93126@wilp.bits-pilani.ac.in`)
 * **Thamarai Muthu Selvi A** (`2025tm93028@wilp.bits-pilani.ac.in`)
 * **Vijay Kumar Singh** (`2025tm93550@wilp.bits-pilani.ac.in`)
-* **Hemanta** (`2025tm93xxx@wilp.bits-pilani.ac.in`)  
+* **Hemanta Kumar Rana** (`2025tm93157@wilp.bits-pilani.ac.in`)  
 **Repository**: [https://github.com/kush6542/Group26_Scalable_Services](https://github.com/kush6542/Group26_Scalable_Services)
 
 ---
@@ -388,7 +388,7 @@ Every service implements identical error responses:
 | **Kushagra Parashar** | `2025tm93126@wilp.bits-pilani.ac.in` | **Order Service** & **Restaurant Service** | Architected the core multi-service checkout Saga Orchestrator, persistent state machine, and Challenge 1 atomic SQL concurrency control (`available_quantity >= :qty`). Built end-to-end integration test harness and unified service runner. |
 | **Thamarai Muthu Selvi A** | `2025tm93028@wilp.bits-pilani.ac.in` | **Payment Service** | Implemented Challenge 2 idempotency engine with cryptographic SHA-256 request payload hashing, database unique constraints for concurrent race protection, and simulated failure injection for Saga rollbacks. |
 | **Vijay Kumar Singh** | `2025tm93550@wilp.bits-pilani.ac.in` | **Delivery Service** | Engineered the rider registry, rider status locking (`AVAILABLE` -> `BUSY`), delivery task allocation lifecycle, and compensating cancellation endpoints for multi-step Saga rollbacks. |
-| **Hemanta** | `2025tm93xxx@wilp.bits-pilani.ac.in` | **Notification Service** | Developed the multi-channel notification dispatching service (SMS, Email, Push), third-party gateway failure simulation, health probe monitoring, and distributed correlation ID tracing middleware. |
+| **Hemanta Kumar Rana** | `2025tm93157@wilp.bits-pilani.ac.in` | **Notification Service** | Developed the multi-channel notification dispatching service (SMS, Email, Push), third-party gateway failure simulation, health probe monitoring, and distributed correlation ID tracing middleware. |
 
 ### B.2 Individual Reflections
 
@@ -407,7 +407,7 @@ Every service implements identical error responses:
 * **Hardest Problem Solved**: Managing the logistics compensation lifecycle during Saga rollbacks. When downstream operations fail, the delivery task must not only be marked `CANCELLED`, but the assigned rider must be atomically restored to `AVAILABLE` status without creating orphaned driver states.
 * **What I Would Change**: I would incorporate geo-spatial proximity indexing (e.g., PostGIS) so that riders are dispatched based on real-time Euclidean or road distance to the pickup restaurant rather than first-available FIFO order.
 
-#### 4. Hemanta (Notification Service)
+#### 4. Hemanta Kumar Rana (Notification Service)
 * **What I Built**: I developed the Notification Service handling SMS, email, and push alerts with persistent dispatch logging, simulated gateway unreachability (HTTP 503), and distributed tracing middleware.
 * **Hardest Problem Solved**: Establishing end-to-end observability and log correlation. In a distributed multi-service setup, debugging errors without unified identifiers is impossible. I helped implement the `CorrelationIdMiddleware` that extracts or generates `X-Correlation-ID` and propagates it across all service-to-service HTTP headers and log streams.
 * **What I Would Change**: I would implement an outbox pattern with dead-letter queue (DLQ) retry mechanisms so that temporary notification provider failures do not lose pending alerts.
