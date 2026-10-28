@@ -24,18 +24,31 @@ def seed():
     conn_rest.close()
     print("[✓] Restaurant Service: 'rest-taj-biryani' & 'dish-hyderabadi-biryani' (Stock: 20, Price: $14.50)")
     
-    # 2. Seed Delivery Service
+    # 2. Seed Delivery Service (Pool of 5 Available Riders)
     conn_deliv = sqlite3.connect("delivery.db")
     cur_deliv = conn_deliv.cursor()
-    cur_deliv.execute("""
-    INSERT OR REPLACE INTO delivery_riders (id, name, phone, vehicle_type, status, created_at)
-    VALUES ('rider-dave-01', 'Dave Courier', '+19998887777', 'MOTORBIKE', 'AVAILABLE', datetime('now'))
-    """)
+
+    riders = [
+        ('rider-dave-01', 'Dave Courier', '+19998887771'),
+        ('rider-sarah-02', 'Sarah Swift', '+19998887772'),
+        ('rider-alex-03', 'Alex Express', '+19998887773'),
+        ('rider-raj-04', 'Raj Runner', '+19998887774'),
+        ('rider-elena-05', 'Elena Speed', '+19998887775')
+    ]
+
+    for r_id, r_name, r_phone in riders:
+        cur_deliv.execute("""
+        INSERT OR REPLACE INTO delivery_riders (id, name, phone, vehicle_type, status, created_at)
+        VALUES (?, ?, ?, 'MOTORBIKE', 'AVAILABLE', datetime('now'))
+        """, (r_id, r_name, r_phone))
+
+    # Reset any existing riders back to AVAILABLE
+    cur_deliv.execute("UPDATE delivery_riders SET status = 'AVAILABLE'")
     conn_deliv.commit()
     conn_deliv.close()
-    print("[✓] Delivery Service: 'rider-dave-01' (Status: AVAILABLE)")
+    print("[✓] Delivery Service: 5 Riders seeded & reset to 'AVAILABLE'")
 
-    print("\n[SUCCESS] Demo data ready! You can now use clean, fixed IDs in Swagger UI!")
+    print("\n[SUCCESS] Demo data ready! You can now place multiple orders smoothly in Swagger UI!")
 
 if __name__ == "__main__":
     seed()

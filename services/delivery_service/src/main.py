@@ -19,27 +19,39 @@ from .middleware import CorrelationIdMiddleware, logger
 
 Base.metadata.create_all(bind=engine)
 
-def seed_default_rider():
-    """Auto-seeds default available rider so fresh clones have immediate demo data."""
+def seed_default_riders():
+    """Auto-seeds a pool of available riders on startup so consecutive demo orders always succeed."""
     from .database import SessionLocal
     db = SessionLocal()
     try:
-        if db.query(DeliveryRider).filter(DeliveryRider.id == "rider-dave-01").first() is None:
-            rider = DeliveryRider(
-                id="rider-dave-01",
-                name="Dave Courier",
-                phone="+19998887777",
-                vehicle_type="MOTORBIKE",
-                status="AVAILABLE"
-            )
-            db.add(rider)
-            db.commit()
+        riders_pool = [
+            ("rider-dave-01", "Dave Courier", "+19998887771"),
+            ("rider-sarah-02", "Sarah Swift", "+19998887772"),
+            ("rider-alex-03", "Alex Express", "+19998887773"),
+            ("rider-raj-04", "Raj Runner", "+19998887774"),
+            ("rider-elena-05", "Elena Speed", "+19998887775")
+        ]
+        for r_id, r_name, r_phone in riders_pool:
+            rider = db.query(DeliveryRider).filter(DeliveryRider.id == r_id).first()
+            if not rider:
+                rider = DeliveryRider(
+                    id=r_id,
+                    name=r_name,
+                    phone=r_phone,
+                    vehicle_type="MOTORBIKE",
+                    status="AVAILABLE"
+                )
+                db.add(rider)
+            else:
+                # Reset status to AVAILABLE on startup for seamless demo runs
+                rider.status = "AVAILABLE"
+        db.commit()
     except Exception as e:
-        logger.warning(f"Default rider seed skipped: {e}")
+        logger.warning(f"Default riders seed skipped: {e}")
     finally:
         db.close()
 
-seed_default_rider()
+seed_default_riders()
 
 app = FastAPI(
     title="FoodFlow - Delivery Service",
