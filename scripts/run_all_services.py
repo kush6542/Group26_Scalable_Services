@@ -31,7 +31,10 @@ signal.signal(signal.SIGINT, cleanup)
 signal.signal(signal.SIGTERM, cleanup)
 
 def start_services():
-    python_bin = sys.executable
+    # Prefer virtual environment python if present
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    venv_python = os.path.join(repo_root, ".venv", "bin", "python")
+    python_bin = venv_python if os.path.exists(venv_python) else sys.executable
     print("=" * 60)
     print("      Starting FoodFlow Microservices Architecture")
     print("=" * 60)
