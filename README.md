@@ -202,4 +202,4 @@ Group26_Scalable_Services/
 - [x] Challenge 2 (Idempotency) verified with cached replays, payload tampering rejection, and concurrent bursts
 - [x] Challenge 3C (Saga with Compensation) verified with multi-step rollbacks upon payment and delivery failures
 - [x] Structured logs propagate `X-Correlation-ID` across all services
-- [x] Deliverable report outline, sequence diagrams, and video demo script included in `docs/`
+- [x] Deliverable design report, architecture sequence diagrams, and OpenAPI specs included in `docs/`

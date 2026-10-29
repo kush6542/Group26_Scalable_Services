@@ -39,8 +39,14 @@ env/
 .coverage
 htmlcov/
 
-# OS
+# OS & Editors
 .DS_Store
 Thumbs.db
 .idea/
 .vscode/
+
+# Internal Project & Submission Exclusions
+Assignment1_*.docx
+scripts/generate_pdf_report.py
+docs/DEMO_VIDEO_RECORDING_SCRIPT.md
+docs/context/
