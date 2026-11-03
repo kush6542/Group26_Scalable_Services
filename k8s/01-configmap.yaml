@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: foodflow-config
+  namespace: foodflow
+data:
+  LOG_LEVEL: "INFO"
+  ENVIRONMENT: "kubernetes"
+  POSTGRES_HOST: "postgres.foodflow.svc.cluster.local"
+  POSTGRES_PORT: "5432"
+  
+  # Downstream Microservice Service Discovery URLs (Cluster DNS)
+  RESTAURANT_SERVICE_URL: "http://restaurant-service.foodflow.svc.cluster.local:8002"
+  PAYMENT_SERVICE_URL: "http://payment-service.foodflow.svc.cluster.local:8003"
+  DELIVERY_SERVICE_URL: "http://delivery-service.foodflow.svc.cluster.local:8004"
+  NOTIFICATION_SERVICE_URL: "http://notification-service.foodflow.svc.cluster.local:8005"

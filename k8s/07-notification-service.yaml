@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+  namespace: foodflow
+  labels:
+    app: notification-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: notification-service
+  template:
+    metadata:
+      labels:
+        app: notification-service
+    spec:
+      containers:
+      - name: notification-service
+        image: foodflow/notification-service:v1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8005
+        env:
+        - name: SERVICE_NAME
+          value: "notification_service"
+        - name: HOST
+          value: "0.0.0.0"
+        - name: PORT
+          value: "8005"
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: foodflow-secrets
+              key: NOTIFICATION_DB_USER
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: foodflow-secrets
+              key: NOTIFICATION_DB_PASSWORD
+        - name: DATABASE_URL
+          value: "postgresql://$(DB_USER):$(DB_PASSWORD)@postgres.foodflow.svc.cluster.local:5432/notification_service_db"
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: foodflow-config
+              key: LOG_LEVEL
+        - name: SIMULATE_FAILURE
+          value: "false"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8005
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8005
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 250m
+            memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-service
+  namespace: foodflow
+  labels:
+    app: notification-service
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8005
+    targetPort: 8005
+  selector:
+    app: notification-service

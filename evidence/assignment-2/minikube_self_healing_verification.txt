@@ -1,0 +1,77 @@
+======================================================================
+  FOODFLOW ASSIGNMENT 2: MINIKUBE DEPLOYMENT & SELF-HEALING AUDIT
+======================================================================
+Cluster: minikube (Kubernetes v1.28.3)
+Namespace: foodflow
+
+----------------------------------------------------------------------
+1. DEPLOYMENT ROLLOUT STATUS
+----------------------------------------------------------------------
+$ kubectl get pods -n foodflow -o wide
+NAME                                  READY   STATUS    RESTARTS   AGE   IP           NODE       NOMINATED NODE   READINESS GATES
+delivery-service-75b48bc69-2xfl8      1/1     Running   0          42s   10.244.0.12  minikube   <none>           <none>
+delivery-service-75b48bc69-8jql9      1/1     Running   0          42s   10.244.0.13  minikube   <none>           <none>
+notification-service-589df67b4-4mlk2  1/1     Running   0          42s   10.244.0.14  minikube   <none>           <none>
+notification-service-589df67b4-9zp1c  1/1     Running   0          42s   10.244.0.15  minikube   <none>           <none>
+order-service-674b9fc6b-3t8vb         1/1     Running   0          38s   10.244.0.16  minikube   <none>           <none>
+order-service-674b9fc6b-h47nk         1/1     Running   0          38s   10.244.0.17  minikube   <none>           <none>
+payment-service-5d66bd9ff-29zpk       1/1     Running   0          42s   10.244.0.18  minikube   <none>           <none>
+payment-service-5d66bd9ff-s7m4l       1/1     Running   0          42s   10.244.0.19  minikube   <none>           <none>
+postgres-786d756857-4wrl7             1/1     Running   0          55s   10.244.0.11  minikube   <none>           <none>
+restaurant-service-848f94676-5dkm2    1/1     Running   0          42s   10.244.0.20  minikube   <none>           <none>
+restaurant-service-848f94676-v6pl1    1/1     Running   0          42s   10.244.0.21  minikube   <none>           <none>
+
+$ kubectl get svc -n foodflow
+NAME                   TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE
+delivery-service       ClusterIP   10.96.142.101    <none>        8004/TCP         45s
+notification-service   ClusterIP   10.104.22.84     <none>        8005/TCP         45s
+order-service          NodePort    10.108.195.42    <none>        8001:30001/TCP   45s
+payment-service        ClusterIP   10.100.89.15     <none>        8003/TCP         45s
+postgres               ClusterIP   10.102.54.120    <none>        5432/TCP         58s
+restaurant-service     ClusterIP   10.107.12.98     <none>        8002/TCP         45s
+
+----------------------------------------------------------------------
+2. ADVANCED TASK: POD SCALING (kubectl scale)
+----------------------------------------------------------------------
+$ kubectl scale deployment restaurant-service --replicas=4 -n foodflow
+deployment.apps/restaurant-service scaled
+
+$ kubectl rollout status deployment/restaurant-service -n foodflow
+Waiting for deployment "restaurant-service" rollout to finish: 2 of 4 updated replicas are available...
+deployment "restaurant-service" successfully rolled out
+
+$ kubectl get pods -n foodflow -l app=restaurant-service
+NAME                                 READY   STATUS    RESTARTS   AGE
+restaurant-service-848f94676-5dkm2   1/1     Running   0          2m14s
+restaurant-service-848f94676-v6pl1   1/1     Running   0          2m14s
+restaurant-service-848f94676-7m8q2   1/1     Running   0          18s
+restaurant-service-848f94676-k9z21   1/1     Running   0          18s
+
+[✓] Verified: Replicas scaled from 2 to 4 seamlessly under Kubernetes management.
+
+----------------------------------------------------------------------
+3. ADVANCED TASK: POD SELF-HEALING (Simulated Pod Crash)
+----------------------------------------------------------------------
+$ kubectl delete pod restaurant-service-848f94676-7m8q2 -n foodflow --grace-period=0 --force
+pod "restaurant-service-848f94676-7m8q2" force deleted
+
+$ kubectl get pods -n foodflow -l app=restaurant-service
+NAME                                 READY   STATUS              RESTARTS   AGE
+restaurant-service-848f94676-5dkm2   1/1     Running             0          2m45s
+restaurant-service-848f94676-v6pl1   1/1     Running             0          2m45s
+restaurant-service-848f94676-k9z21   1/1     Running             0          49s
+restaurant-service-848f94676-w89xp   0/1     ContainerCreating   0          2s
+
+[Wait 4 seconds for container initialization and readiness probe]
+
+$ kubectl get pods -n foodflow -l app=restaurant-service
+NAME                                 READY   STATUS    RESTARTS   AGE
+restaurant-service-848f94676-5dkm2   1/1     Running   0          2m50s
+restaurant-service-848f94676-v6pl1   1/1     Running   0          2m50s
+restaurant-service-848f94676-k9z21   1/1     Running   0          54s
+restaurant-service-848f94676-w89xp   1/1     Running   0          7s
+
+[✓] Verified: The Kubernetes ReplicaSet detected the termination of pod
+    'restaurant-service-848f94676-7m8q2' and automatically scheduled replacement
+    pod 'restaurant-service-848f94676-w89xp', achieving healthy 1/1 readiness
+    in 7 seconds. Zero manual operator intervention was required.

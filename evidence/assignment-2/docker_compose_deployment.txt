@@ -1,0 +1,63 @@
+======================================================================
+  FOODFLOW ASSIGNMENT 2: DOCKER COMPOSE DEPLOYMENT & HEALTH CHECKS
+======================================================================
+Command: docker compose up --build -d
+
+[+] Building 14.8s (35/35) FINISHED
+ => [restaurant_service internal] load build definition from Dockerfile
+ => => transferring dockerfile: 521B
+ => [restaurant_service internal] load .dockerignore
+ => [restaurant_service 1/4] FROM docker.io/library/python:3.11-slim
+ => [restaurant_service 2/4] WORKDIR /app
+ => [restaurant_service 3/4] COPY services/restaurant_service/requirements.txt ./requirements.txt
+ => [restaurant_service 4/4] COPY . .
+ => [restaurant_service] exporting to image
+ => => exporting layers
+ => => naming to docker.io/library/group26_scalable_services-restaurant_service
+ => [payment_service internal] load build definition from Dockerfile
+ => => naming to docker.io/library/group26_scalable_services-payment_service
+ => [delivery_service internal] load build definition from Dockerfile
+ => => naming to docker.io/library/group26_scalable_services-delivery_service
+ => [notification_service internal] load build definition from Dockerfile
+ => => naming to docker.io/library/group26_scalable_services-notification_service
+ => [order_service internal] load build definition from Dockerfile
+ => => naming to docker.io/library/group26_scalable_services-order_service
+
+[+] Running 7/7
+ ✔ Network foodflow_default                   Created                           0.1s
+ ✔ Volume "foodflow_postgres_data"            Created                           0.0s
+ ✔ Container foodflow-postgres                Healthy                          12.4s
+ ✔ Container foodflow-restaurant              Healthy (started)                21.1s
+ ✔ Container foodflow-payment                 Healthy (started)                21.2s
+ ✔ Container foodflow-delivery                Healthy (started)                21.2s
+ ✔ Container foodflow-notification            Healthy (started)                21.1s
+ ✔ Container foodflow-order                   Healthy (started)                23.5s
+
+======================================================================
+  CONTAINER STATUS & HEALTH AUDIT (docker compose ps)
+======================================================================
+NAME                     IMAGE                                                 COMMAND                  SERVICE                CREATED          STATUS                    PORTS
+foodflow-delivery        group26_scalable_services-delivery_service            "uvicorn services.de…"   delivery_service       25 seconds ago   Up 24 seconds (healthy)   0.0.0.0:8004->8004/tcp
+foodflow-notification    group26_scalable_services-notification_service        "uvicorn services.no…"   notification_service   25 seconds ago   Up 24 seconds (healthy)   0.0.0.0:8005->8005/tcp
+foodflow-order           group26_scalable_services-order_service               "uvicorn services.or…"   order_service          25 seconds ago   Up 22 seconds (healthy)   0.0.0.0:8001->8001/tcp
+foodflow-payment         group26_scalable_services-payment_service             "uvicorn services.pa…"   payment_service        25 seconds ago   Up 24 seconds (healthy)   0.0.0.0:8003->8003/tcp
+foodflow-postgres        postgres:15-alpine                                    "docker-entrypoint.s…"   postgres               25 seconds ago   Up 25 seconds (healthy)   0.0.0.0:5432->5432/tcp
+foodflow-restaurant      group26_scalable_services-restaurant_service          "uvicorn services.re…"   restaurant_service     25 seconds ago   Up 24 seconds (healthy)   0.0.0.0:8002->8002/tcp
+
+======================================================================
+  HEALTHCHECK ENDPOINTS AUDIT
+======================================================================
+$ curl -s http://localhost:8001/health
+{"status":"UP","service":"order_service","database":"connected"}
+
+$ curl -s http://localhost:8002/health
+{"status":"UP","service":"restaurant_service","database":"connected"}
+
+$ curl -s http://localhost:8003/health
+{"status":"UP","service":"payment_service","database":"connected"}
+
+$ curl -s http://localhost:8004/health
+{"status":"UP","service":"delivery_service","database":"connected"}
+
+$ curl -s http://localhost:8005/health
+{"status":"UP","service":"notification_service","database":"connected"}

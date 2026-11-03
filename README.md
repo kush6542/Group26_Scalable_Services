@@ -98,42 +98,84 @@ Interactive OpenAPI Swagger documentation is available on each service at `http:
 
 ## 5. Quickstart & How to Run
 
-### Prerequisites
-* Python 3.10+
-* Git
+### Option A: Local Python Run (Recommended for Assignment 1)
 
-### Step 1: Clone and Set Up Virtual Environment
+This option runs all 5 services with zero external dependencies using private SQLite databases.
+
+#### Step 1: Clone and Set Up Virtual Environment
 ```bash
 git clone https://github.com/kush6542/Group26_Scalable_Services.git
 cd Group26_Scalable_Services
 
 # Create and activate virtual environment
 python3 -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate       # On Mac/Linux
+# OR: .venv\Scripts\Activate.ps1 # On Windows
 
-# Install dependencies
-pip install fastapi uvicorn sqlalchemy httpx pydantic pytest
+# Install all dependencies
+pip install -r requirements.txt
 ```
 
-### Step 2: Run All 5 Services
+#### Step 2: Run Unit Tests
+```bash
+pytest services/
+```
+Output:
+```text
+======================== 20 passed, 1 warning in 0.44s =========================
+```
+
+#### Step 3: Start All 5 Services
 We provide an automated orchestrator runner that launches all 5 services concurrently and validates their `/health` checks:
 ```bash
 python3 scripts/run_all_services.py
 ```
 *(Leave this running in terminal window 1).*
 
-### Step 3: Run Unit Tests
-In a second terminal window (with `.venv` activated):
+---
+
+### Option B: Docker Compose Run (Assignment 2 Core Task)
+
+FoodFlow supports running as a containerized stack with a dedicated PostgreSQL 15 instance and one isolated database per service:
+
 ```bash
-pytest services/
-```
-Output:
-```text
-======================== 20 passed, 1 warning in 0.38s =========================
+# 1. Create environment configuration from template
+cp .env.example .env
+
+# 2. Build and launch all 5 microservices + PostgreSQL 15
+docker compose up --build -d
+
+# 3. Verify all services are healthy
+docker compose ps
+
+# 4. Run end-to-end integration test against the container stack:
+python3 scripts/test_e2e_flow.py
+
+# 5. To stop and remove the stack:
+docker compose down -v
 ```
 
+---
+
+### Option C: Minikube Kubernetes Deployment (Assignment 2 Advanced Task)
+
+FoodFlow provides complete, modular Kubernetes manifests under `k8s/` for deployment on local Minikube clusters:
+
+```bash
+# 1. Automated build, deploy and rollout verification:
+bash k8s/deploy_minikube.sh
+
+# 2. Inspect running pods and services in 'foodflow' namespace:
+kubectl get pods,svc -n foodflow
+
+# 3. Demonstrate pod scaling and automated self-healing:
+bash k8s/test_self_healing.sh
+```
+
+---
+
 ### Step 4: Run Challenge & End-to-End Verification Scripts
-With all services running:
+In a second terminal window (with `.venv` activated, while services are running):
 ```bash
 # 1. Run Main End-to-End Business Flow:
 python3 scripts/test_e2e_flow.py
@@ -154,26 +196,36 @@ python3 scripts/test_challenge3_saga.py
 
 ```text
 Group26_Scalable_Services/
-├── README.md                           # This guide
+├── README.md                           # Evaluator manual & quickstart guide
+├── requirements.txt                    # Project root dependencies
+├── .env.example                        # Template environment variables (zero hardcoded secrets)
+├── docker-compose.yml                  # Multi-container orchestration stack
+├── docker/
+│   └── postgres/
+│       └── init.sql                    # Creates PostgreSQL DBs and users
+├── k8s/                                # Kubernetes manifests (Assignment 2 Advanced)
+│   ├── 00-namespace.yaml               # foodflow namespace
+│   ├── 01-configmap.yaml               # Cluster environment discovery URLs
+│   ├── 02-secret.yaml                  # Database credentials
+│   ├── 03-postgres.yaml                # PVC, Deployment, Service
+│   ├── 04-restaurant-service.yaml      # 2 replicas, probes, resources, Service
+│   ├── 05-payment-service.yaml         # 2 replicas, probes, resources, Service
+│   ├── 06-delivery-service.yaml        # 2 replicas, probes, resources, Service
+│   ├── 07-notification-service.yaml    # 2 replicas, probes, resources, Service
+│   ├── 08-order-service.yaml           # 2 replicas, NodePort 30001 Service
+│   ├── deploy_minikube.sh              # 1-command Minikube deployment script
+│   └── test_self_healing.sh            # Scaling & pod self-healing test harness
 ├── pytest.ini                          # Pytest configuration
-├── docs/                               # Diagrams, OpenAPI JSON specs, design report
-│   ├── openapi/
-│   │   ├── order_service_openapi.json
-│   │   ├── restaurant_service_openapi.json
-│   │   ├── payment_service_openapi.json
-│   │   ├── delivery_service_openapi.json
-│   │   └── notification_service_openapi.json
-│   └── FoodFlow_Design_Report.md
+├── docs/                               # Diagrams, OpenAPI JSON specs, design reports
+│   ├── openapi/                        # Service Swagger specifications
+│   ├── FoodFlow_Design_Report.pdf      # Assignment 1 Design Report (15 pages)
+│   └── Assignment2_Deployment_Report.pdf # Assignment 2 Deployment Report (5 pages)
 ├── services/
-│   ├── order_service/                  # Port 8001
-│   │   ├── src/ (main.py, saga_orchestrator.py, models.py, schemas.py, config.py)
-│   │   ├── tests/ (test_business_rules.py)
-│   │   ├── requirements.txt
-│   │   └── .env.example
-│   ├── restaurant_service/             # Port 8002
-│   ├── payment_service/                # Port 8003
-│   ├── delivery_service/               # Port 8004
-│   └── notification_service/           # Port 8005
+│   ├── order_service/                  # Port 8001 | orders.db | Saga Orchestrator | Dockerfile
+│   ├── restaurant_service/             # Port 8002 | restaurant.db | Inventory Control | Dockerfile
+│   ├── payment_service/                # Port 8003 | payment.db | Idempotency Engine | Dockerfile
+│   ├── delivery_service/               # Port 8004 | delivery.db | Rider Allocation | Dockerfile
+│   └── notification_service/           # Port 8005 | notification.db | Multi-channel Alerts | Dockerfile
 ├── scripts/
 │   ├── run_all_services.py             # Single command service runner with health checks
 │   ├── seed_demo_data.py               # Standalone demo data seeder (fixed memorable IDs)
@@ -186,7 +238,8 @@ Group26_Scalable_Services/
     ├── challenge-1-concurrency/        # Output logs and explanatory README
     ├── challenge-2-idempotency/
     ├── challenge-3-saga/
-    └── tests/
+    ├── tests/
+    └── assignment-2/                   # Docker Compose, Troubleshooting & Minikube logs
 ```
 
 ---

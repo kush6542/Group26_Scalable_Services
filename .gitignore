@@ -47,6 +47,8 @@ Thumbs.db
 
 # Internal Project & Submission Exclusions
 Assignment1_*.docx
+Assignment_2_*.docx
 scripts/generate_pdf_report.py
-docs/DEMO_VIDEO_RECORDING_SCRIPT.md
+docs/*DEMO_VIDEO*.md
+docs/*NEW_MACHINE*.md
 docs/context/

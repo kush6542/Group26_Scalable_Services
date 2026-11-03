@@ -1,0 +1,49 @@
+======================================================================
+  FOODFLOW ASSIGNMENT 2: CONTAINERIZED MAIN APPLICATION WORKFLOW
+======================================================================
+Testing against: Docker Compose Stack (All services healthy on ports 8001-8005)
+Command: python3 scripts/test_e2e_flow.py
+
+============================================================
+   FoodFlow End-to-End Main Transaction Verification
+============================================================
+
+1. Verifying Health of all 5 containerized services...
+   [✓] order_service is UP (status: UP, DB: connected)
+   [✓] restaurant_service is UP (status: UP, DB: connected)
+   [✓] payment_service is UP (status: UP, DB: connected)
+   [✓] delivery_service is UP (status: UP, DB: connected)
+   [✓] notification_service is UP (status: UP, DB: connected)
+
+2. Seeding Restaurant & Menu Catalog (Docker Postgres)...
+   [✓] Created Restaurant: 'Taj Biryani Kitchen' (ID: 994a5e18-6bb2-4011-85db-115822e18b82)
+   [✓] Added Menu Item: 'Hyderabadi Dum Biryani' (Qty: 20, Price: $14.50)
+
+3. Registering Delivery Rider in Rider Pool...
+   [✓] Registered Rider: 'Dave Courier' (Status: AVAILABLE)
+
+4. Customer Initiates Order Checkout (Multi-Service Saga across Docker network)...
+   [✓] Order Placed & Confirmed: ID=3bb892f1-6db7-4d99-ba21-ec209176cf6b
+       - Status: CONFIRMED
+       - Total: $29.0
+       - Stock Reservation ID: c917d092-127b-4537-8854-1b12b591b921
+       - Payment ID: a49b2518-ff31-4c12-a720-3b9991264c78
+       - Delivery Task ID: 887ec102-16b7-4a09-9134-b22381e01721
+
+5. Verifying Database Consistency Across Dedicated PostgreSQL Databases...
+   [✓] Restaurant Stock updated in restaurant_service_db: 20 -> 18 (Decremented by 2)
+   [✓] Payment Service confirmed transaction in payment_service_db: Status = SUCCESS
+   [✓] Delivery Task confirmed in delivery_service_db: Status = ASSIGNED
+   [✓] Notification Service recorded dispatch in notification_service_db:
+       'FoodFlow Order 3bb892f1-6db7-4d99-ba21-ec209176cf6b confirmed! Delivery task 887ec102-16b7-4a09-9134-b22381e01721 is dispatched.'
+
+6. Order State Machine Transition History (Stored in order_service_db):
+   - NONE -> PENDING (Order checkout initiated by customer)
+   - PENDING -> STOCK_RESERVED (Reservation ID: c917d092-127b-4537-8854-1b12b591b921)
+   - STOCK_RESERVED -> PAID (Payment ID: a49b2518-ff31-4c12-a720-3b9991264c78)
+   - PAID -> DELIVERY_ASSIGNED (Delivery Task ID: 887ec102-16b7-4a09-9134-b22381e01721)
+   - DELIVERY_ASSIGNED -> CONFIRMED (Order checkout saga successfully finished)
+
+============================================================
+  [SUCCESS] END-TO-END FLOW COMPLETED ALL CHECKS OVER DOCKER!
+============================================================
