@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: restaurant-service
+  namespace: foodflow
+  labels:
+    app: restaurant-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: restaurant-service
+  template:
+    metadata:
+      labels:
+        app: restaurant-service
+    spec:
+      containers:
+      - name: restaurant-service
+        image: foodflow/restaurant-service:v1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8002
+        env:
+        - name: SERVICE_NAME
+          value: "restaurant_service"
+        - name: HOST
+          value: "0.0.0.0"
+        - name: PORT
+          value: "8002"
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: foodflow-secrets
+              key: RESTAURANT_DB_USER
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: foodflow-secrets
+              key: RESTAURANT_DB_PASSWORD
+        - name: DATABASE_URL
+          value: "postgresql://$(DB_USER):$(DB_PASSWORD)@postgres.foodflow.svc.cluster.local:5432/restaurant_service_db"
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: foodflow-config
+              key: LOG_LEVEL
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8002
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8002
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 250m
+            memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: restaurant-service
+  namespace: foodflow
+  labels:
+    app: restaurant-service
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8002
+    targetPort: 8002
+  selector:
+    app: restaurant-service

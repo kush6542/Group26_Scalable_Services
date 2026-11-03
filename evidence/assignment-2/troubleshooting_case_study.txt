@@ -1,0 +1,109 @@
+======================================================================
+  ASSIGNMENT 2 SITUATED LEARNING: DEPLOYMENT TROUBLESHOOTING CHALLENGE
+======================================================================
+Group: Group 26
+Application: FoodFlow Microservices Platform
+
+----------------------------------------------------------------------
+1. PROBLEM DESCRIPTION & OBSERVED SYMPTOM (0.5 Marks)
+----------------------------------------------------------------------
+During initial multi-container deployment via Docker Compose, the complete
+application failed to boot. While the PostgreSQL container reported a
+state of 'Up (running)', all application microservices (restaurant_service,
+payment_service, delivery_service, order_service) crashed immediately on
+startup and entered a continuous restart loop (Exit code 1).
+
+Clients attempting to hit http://localhost:8001/api/v1/orders/checkout
+received 'HTTP 502 Bad Gateway' or 'Failed to connect to localhost port 8001'.
+
+----------------------------------------------------------------------
+2. DIAGNOSIS USING DEPLOYMENT & CONTAINER TOOLS (1.0 Marks)
+----------------------------------------------------------------------
+Step 2.1: Inspected high-level container states
+$ docker compose ps
+NAME                     IMAGE                    STATUS                    PORTS
+foodflow-postgres        postgres:15-alpine       Up 12 seconds             0.0.0.0:5432->5432/tcp
+foodflow-restaurant      foodflow-restaurant:latest Restarting (1) 2s ago    
+foodflow-payment         foodflow-payment:latest    Restarting (1) 2s ago    
+foodflow-order           foodflow-order:latest      Restarting (1) 3s ago    
+
+Observation: The database container is 'Up', but the microservices are repeatedly failing.
+
+Step 2.2: Inspected container stdout/stderr logs
+$ docker compose logs restaurant_service
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 145, in connect
+    return self._connection_cls(self)
+psycopg.OperationalError: connection to server at "postgres" (172.20.0.2), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+Step 2.3: Inspected database startup lifecycle
+$ docker compose logs postgres
+PostgreSQL Database directory appears to contain a database; Skipping initialization
+2026-11-03 09:12:04.120 UTC [1] LOG:  starting PostgreSQL 15.4 on aarch64-unknown-linux-musl
+2026-11-03 09:12:04.380 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2026-11-03 09:12:07.890 UTC [1] LOG:  database system is ready to accept connections
+
+Root Cause Identification:
+There is an asynchronous race condition between container lifecycle states:
+Docker Compose's standard 'depends_on: [postgres]' directive only checks that
+the PostgreSQL container's PID 1 process has been spawned (which takes ~0.2s).
+However, PostgreSQL requires ~3.5 seconds to initialize its storage engine,
+bind sockets, and execute '/docker-entrypoint-initdb.d/init.sql'.
+The microservices started in 0.5s, attempted immediate SQLAlchemy schema
+migrations against port 5432 before PostgreSQL was ready, received TCP
+'Connection Refused', and crashed.
+
+----------------------------------------------------------------------
+3. SOLUTION & VALIDATION (1.0 Marks)
+----------------------------------------------------------------------
+To resolve this startup race condition deterministically without ad-hoc
+'sleep' hacks, we introduced declarative health-checking readiness gates:
+
+1. Added native PostgreSQL healthcheck in docker-compose.yml:
+   postgres:
+     healthcheck:
+       test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+       interval: 5s
+       timeout: 5s
+       retries: 10
+       start_period: 10s
+
+2. Updated all dependent microservices to use conditional health dependencies:
+   restaurant_service:
+     depends_on:
+       postgres:
+         condition: service_healthy
+
+3. Configured Order Service (Saga Orchestrator) to gate on both postgres AND
+   its downstream peer microservices:
+   order_service:
+     depends_on:
+       postgres:
+         condition: service_healthy
+       restaurant_service:
+         condition: service_healthy
+       payment_service:
+         condition: service_healthy
+       delivery_service:
+         condition: service_healthy
+       notification_service:
+         condition: service_healthy
+
+Validation:
+$ docker compose down -v
+$ docker compose up --build -d
+All containers started in strict topological readiness order.
+$ docker compose ps
+All 6 containers reported: STATUS = Up (healthy).
+
+----------------------------------------------------------------------
+4. LEARNING REFLECTION (0.5 Marks)
+----------------------------------------------------------------------
+This situated learning problem highlighted the fundamental difference between
+'Process Liveness' (the OS process has started) and 'Application Readiness'
+(the service is initialized and accepting network sockets).
+In distributed container architectures, dependencies are asynchronous. Relying
+on process start order is brittle. Production deployments must always implement
+declarative readiness probes (such as Docker healthchecks or Kubernetes
+readinessProbes) to coordinate multi-tier startup without race conditions.

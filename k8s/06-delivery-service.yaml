@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: delivery-service
+  namespace: foodflow
+  labels:
+    app: delivery-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: delivery-service
+  template:
+    metadata:
+      labels:
+        app: delivery-service
+    spec:
+      containers:
+      - name: delivery-service
+        image: foodflow/delivery-service:v1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8004
+        env:
+        - name: SERVICE_NAME
+          value: "delivery_service"
+        - name: HOST
+          value: "0.0.0.0"
+        - name: PORT
+          value: "8004"
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: foodflow-secrets
+              key: DELIVERY_DB_USER
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: foodflow-secrets
+              key: DELIVERY_DB_PASSWORD
+        - name: DATABASE_URL
+          value: "postgresql://$(DB_USER):$(DB_PASSWORD)@postgres.foodflow.svc.cluster.local:5432/delivery_service_db"
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: foodflow-config
+              key: LOG_LEVEL
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8004
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8004
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 250m
+            memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: delivery-service
+  namespace: foodflow
+  labels:
+    app: delivery-service
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8004
+    targetPort: 8004
+  selector:
+    app: delivery-service

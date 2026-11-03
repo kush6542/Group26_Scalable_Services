@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: foodflow
+  labels:
+    app.kubernetes.io/name: foodflow
+    app.kubernetes.io/part-of: foodflow-platform

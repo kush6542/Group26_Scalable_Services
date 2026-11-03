@@ -1,0 +1,117 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: foodflow
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-sql
+  namespace: foodflow
+data:
+  init.sql: |
+    CREATE USER order_service_user WITH PASSWORD 'order_k8s_password';
+    CREATE USER restaurant_service_user WITH PASSWORD 'restaurant_k8s_password';
+    CREATE USER payment_service_user WITH PASSWORD 'payment_k8s_password';
+    CREATE USER delivery_service_user WITH PASSWORD 'delivery_k8s_password';
+    CREATE USER notification_service_user WITH PASSWORD 'notification_k8s_password';
+
+    CREATE DATABASE order_service_db OWNER order_service_user;
+    CREATE DATABASE restaurant_service_db OWNER restaurant_service_user;
+    CREATE DATABASE payment_service_db OWNER payment_service_user;
+    CREATE DATABASE delivery_service_db OWNER delivery_service_user;
+    CREATE DATABASE notification_service_db OWNER notification_service_user;
+
+    GRANT ALL PRIVILEGES ON DATABASE order_service_db TO order_service_user;
+    GRANT ALL PRIVILEGES ON DATABASE restaurant_service_db TO restaurant_service_user;
+    GRANT ALL PRIVILEGES ON DATABASE payment_service_db TO payment_service_user;
+    GRANT ALL PRIVILEGES ON DATABASE delivery_service_db TO delivery_service_user;
+    GRANT ALL PRIVILEGES ON DATABASE notification_service_db TO notification_service_user;
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: foodflow
+  labels:
+    app: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: foodflow-secrets
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: foodflow-secrets
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          value: postgres
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+        - name: init-sql
+          mountPath: /docker-entrypoint-initdb.d/init.sql
+          subPath: init.sql
+        readinessProbe:
+          exec:
+            command: ["pg_isready", "-U", "postgres", "-d", "postgres"]
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        livenessProbe:
+          exec:
+            command: ["pg_isready", "-U", "postgres", "-d", "postgres"]
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      volumes:
+      - name: postgres-data
+        persistentVolumeClaim:
+          claimName: postgres-pvc
+      - name: init-sql
+        configMap:
+          name: postgres-init-sql
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: foodflow
+  labels:
+    app: postgres
+spec:
+  type: ClusterIP
+  ports:
+  - port: 5432
+    targetPort: 5432
+  selector:
+    app: postgres
